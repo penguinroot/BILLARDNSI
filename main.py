@@ -1,226 +1,385 @@
+from email import message
 import math
+import sys
 import tkinter as tk
-from tkinter import messagebox, simpledialog
+from tkinter import messagebox
 import time
+# Removed unused tkinter import
+class Bille:
+    def __init__(self, canevas, numero, x, y, rayon, couleur):
+        self.canevas = canevas
+        self.numero = numero
+        self.x = x
+        self.y = y
+        self.rayon = rayon
+        self.couleur = couleur
+        self.id = self.dessiner()
+        self.text_id = self.dessiner_nombre()  # ID pour le texte
+        self.vx = 0.0
+        self.vy = 0.0
 
-# Variables globales
-billeb_id = None
-global bille_x
-global bille_y
-queue_id = None
-angle_actuel = 0
-rayon_bille = 15
-puiss = 100
-marge = 60
-poidsqueue = 0.5
+    def dessiner(self):
+        return self.canevas.create_oval(
+            self.x - self.rayon,
+            self.y - self.rayon,
+            self.x + self.rayon,
+            self.y + self.rayon,
+            width=0,
+            fill=self.couleur,
+            outline=self.couleur
+        )
 
+    def dessiner_nombre(self):
+        return self.canevas.create_text(
+            self.x,
+            self.y,
+            text=str(self.numero),
+            fill="white",
+            font=("Arial", 12, "bold")
+        )
 
-def drawcircle(canv, x, y, rad,color):
-    canv.create_oval(x - rad, y - rad, x + rad, y + rad, width=0, fill=color, outline=color)
-    return canv.find_closest(x, y)[0]
+    def mettre_a_jour_position(self, x, y):
+        self.x = x
+        self.y = y
+        self.canevas.coords(self.id, x - self.rayon, y - self.rayon, x + self.rayon, y + self.rayon)
+        self.canevas.coords(self.text_id, x, y)  # Met à jour la position du texte
 
-def start():
-    messagebox.showinfo("Placez la bille", "Cliquez dans la zone verte, à droite de la ligne blanche pour placer la bille.")
-    canvas.bind("<Button-1>", place_bille)
-def debug_keypress(event):
-    print(f"Touche pressée : {event.keysym}")
-
-
-
-def place_bille(event):
-    global billeb_id,bille_x,bille_y
-    ligne_placement = marge + 3/4 * (w - 2 * marge)
-    if event.x > ligne_placement:
-        billeb_id = drawcircle(canvas, event.x, event.y, rayon_bille,"white")
-        bille_x, bille_y = event.x, event.y
-        print(event.x, event.y)
-        canvas.unbind("<Button-1>")
-        place_canne()
-    else:
-        messagebox.showwarning("Mauvais placement", "Placez la bille à droite de la ligne blanche !")
-def place_canne():
-        global queue_id, angle_actuel, puiss,bille_x, bille_y,x1, y1, x2, y2
-        x1, y1, x2, y2 = canvas.coords(billeb_id)
-        dessin_canne()
-        root.bind("<Left>", rotate_left)
-        root.bind("<Right>", rotate_right)
-        root.bind("<Return>", validate_angle)
-        root.bind("<Up>", more_power)
-        root.bind("<Down>", less_power)
-        root.bind("<Shift_R>", set_puissance)
-def dessin_canne():
-    global queue_id,angle_actuel, puiss,x1, y1, x2, y2,bille_x, bille_y
-    if queue_id:
-        canvas.delete(queue_id)
-    print("la bille est en ", bille_x, bille_y)
-    # Dépendance de la longueur à la puissance
-    longueur = 50 + puiss  # Tu peux ajuster le "+ puiss" si c'est trop long
-    x2 = bille_x + longueur * math.sin(math.radians(angle_actuel))
-    y2 = bille_y - longueur * math.cos(math.radians(angle_actuel))
-    queue_id = canvas.create_line(bille_x, bille_y, x2, y2, fill="red", width=4)
-
-def rotate_left(event=None):
-    global angle_actuel
-    angle_actuel = (angle_actuel - 1) % 360
-    dessin_canne()
-
-def rotate_right(event=None):
-    global angle_actuel
-    angle_actuel = (angle_actuel + 1) % 360
-    dessin_canne()
-
-def validate_angle(event=None):
-    root.unbind("<Left>")
-    root.unbind("<Right>")
-    root.unbind("<Return>")
-    print("Angle actuel : ", angle_actuel)
-
-def more_power(event=None):
-    global puiss
-    puiss += 1
-    dessin_canne()
-    print("Puissance actuelle : ", puiss)
-    return puiss
-
-def less_power(event=None):
-    global puiss
-    puiss -= 1
-    dessin_canne()
-    print("Puissance actuelle : ", puiss)
-    return puiss
-
-def set_puissance(event=None):
-    global puiss
-    root.unbind("<Shift_R>")
-    root.unbind("<Up>")
-    root.unbind("<Down>")
-    print("Puissance actuelle : ", puiss)
-    canvas.delete(queue_id)  # Enlève la queue du canvas
-    shoot()
-
-def shoot():
-    global billeb_id, angle_actuel, puiss, bille_x, bille_y, x1, y1, x2, y2
-    angle_rad = math.radians(angle_actuel)
-    Ec = 1/2*poidsqueue*puiss*puiss #puiss est = à la vitesse
-    print("Énergie cinétique : ", Ec)
-    dx = -Ec * math.sin(angle_rad)
-    dy = Ec * math.cos(angle_rad)
-    friction = 0.90
-
-    while abs(dx) > 1 or abs(dy) > 1:
-        canvas.move(billeb_id, dx / 100, dy / 100)
-        x1, y1, x2, y2 = canvas.coords(billeb_id)
-        dx, dy = check_collision(x1, y1, x2, y2, dx, dy)
-        dx *= friction
-        dy *= friction
-        canvas.update()
-        time.sleep(0.05)
-    print("Fin du mouvement")
-    bille_x, bille_y = (x1+x2)/2, (y1+y2)/2
-    print("Position finale de la bille : ", bille_x, bille_y)
-    place_canne()
-
-# Définir les positions des trous
+class Canne:
+    def __init__(self, canevas, bille):
+        self.canevas = canevas
+        self.bille = bille
+        self.angle = 90
+        self.puissance = 100
+        self.proj_id = None
+        self.id = None
+        self.poids = 0.5
+        self.wtour=0
+        self.label_info = tk.Label(self.canevas, text='', bg='lightblue', font=("Arial", 16))
+        self.label_info.place(x=1000, y=10)
 
 
-def check_collision(x1, y1, x2, y2, dx, dy):
-    # Vérification des collisions avec les bords
-    if x1 <= marge + rayon_bille or x2 >= w - marge - rayon_bille:
-        dx = -dx
-    if y1 <= marge + rayon_bille or y2 >= h - marge - rayon_bille:
-        dy = -dy
-    
-    if x1 < tombe[0][0] and y1 < tombe[0][1]:
-        print("bille dans le trou1")
-        canvas.delete(billeb_id)  # Enlève la bille du canvas
-    if x2 > tombe[1][0] and y1 < tombe[1][1]:
-        print("bille dans le trou2")
-        canvas.delete(billeb_id)
-    if x1 < tombe[2][0] and y2 > tombe[2][1]:
-        print("bille dans le trou3")
-        canvas.delete(billeb_id)
-    if x2 > tombe[3][0] and y2 > tombe[3][1]:
-        print("bille dans le trou4")
-        canvas.delete(billeb_id)
+    def dessiner(self):
+        if self.id:
+            self.canevas.delete(self.id)
+        if self.proj_id:
+            self.canevas.delete(self.proj_id)
 
-    return dx, dy
+        # Calcul du vecteur directionnel en fonction de l'angle
+        dx = math.sin(math.radians(self.angle))
+        dy = math.cos(math.radians(self.angle))
+
+        # Longueur de la canne (ligne rouge)
+        longueur = 50 + self.puissance
+        x2 = self.bille.x + dx * longueur
+        y2 = self.bille.y - dy * longueur
+        self.id = self.canevas.create_line(
+            self.bille.x, self.bille.y,
+            x2, y2,
+            fill="red", width=4
+        )
+
+        # Longueur de la projection (ligne bleue)
+        longueur_proj = max(self.canevas.winfo_width(), self.canevas.winfo_height())
+        x_proj = self.bille.x - dx * longueur_proj
+        y_proj = self.bille.y + dy * longueur_proj
+        self.proj_id = self.canevas.create_line(
+            self.bille.x, self.bille.y,
+            x_proj, y_proj,
+            fill="white", width=2, dash=(5, 2)
+        )
+        self.label_info.config(text=f'Puissance : {self.puissance}  | Angle : {self.angle}°')
+
+    def tourner_gauche(self):
+        self.wtour =self.wtour+0.5
+        self.angle = (self.angle - self.wtour) % 360
+        self.dessiner()
+
+    def tourner_droite(self):
+        self.wtour=self.wtour+0.5
+        self.angle = (self.angle + self.wtour) % 360
+        self.dessiner()
+    def raz(self):
+        self.wtour=0
+
+    def ajuster_puissance(self, delta):
+        self.puissance = min(120,max(0, self.puissance + delta))
+        self.dessiner()
+
+class JeuDeBillard:
+    def __init__(self):
+        self.racine = tk.Tk()
+        self.racine.attributes('-fullscreen', True)
+        self.largeur = self.racine.winfo_screenwidth()
+        self.hauteur = self.racine.winfo_screenheight()
+
+        self.marge = 60
+        self.rayon_bille = 15
+        self.billes = []
+        self.trous = []
+        self.billes_tombees = []
+        self.position_precedente = None
+        self.temps_precedent = None
+
+        self.creer_canevas()
+        self.creer_trous()
+        self.creer_billes_depart()
+        self.points = 0
+        # self.canevas.bind("<Key>", self.debug_touche)
+
+        self.label_info = tk.Label(self.racine, text='', bg='lightblue', font=("Arial", 16))
+        self.label_info.place(x=10, y=10)
+
+        self.canne = None
+        self.bille_blanche = None
+
+    def creer_canevas(self):
+        self.canevas = tk.Canvas(self.racine, bg='#1B4D3E', width=self.largeur, height=self.hauteur)
+        self.canevas.pack()
+        self.canevas.create_rectangle(
+            self.marge,
+            self.marge,
+            self.largeur - self.marge,
+            self.hauteur - self.marge,
+            outline="gray",
+            width=10
+        )
+        ligne_placement = self.marge + 3/4 * (self.largeur - 2 * self.marge)
+        self.canevas.create_line(
+            ligne_placement,
+            self.marge,
+            ligne_placement,
+            self.hauteur - self.marge,
+            fill="white",
+            width=10
+        )
+
+    def creer_trous(self):
+        decalage = 10
+        positions = [
+            (self.marge + decalage, self.marge + decalage),
+            (self.largeur - self.marge - decalage, self.marge + decalage),
+            (self.marge + decalage, self.hauteur - self.marge - decalage),
+            (self.largeur - self.marge - decalage, self.hauteur - self.marge - decalage)
+        ]
+        for i, (x, y) in enumerate(positions):
+            self.canevas.create_oval(
+                x - self.rayon_bille*1.5,
+                y - self.rayon_bille*1.5,
+                x + self.rayon_bille*1.5,
+                y + self.rayon_bille*1.5,
+                fill='black'
+            )
+            if i == 0:
+                tx, ty = x + self.rayon_bille*1.5, y + self.rayon_bille*1.5
+            elif i == 1:
+                tx, ty = x - self.rayon_bille*1.5, y + self.rayon_bille*1.5
+            elif i == 2:
+                tx, ty = x + self.rayon_bille*1.5, y - self.rayon_bille*1.5
+            else:
+                tx, ty = x - self.rayon_bille*1.5, y - self.rayon_bille*1.5
+            self.trous.append((tx, ty))
+
+    def creer_billes_depart(self):
+        couleurs = ["red", "blue", "green", "yellow", "black", "orange"]
+    #     couleurs = ["red", "blue", "green", "yellow", "black", "orange",
+            #    "pink", "purple", "gray", "brown", "lime", "magenta", "navy", "teal", "gold"]
+        x_depart, y_depart = 500, 400
+        espacement = self.rayon_bille * 2 + 2
+        k = 0
+        for i in range(1, 6):
+            for j in range(i):
+                y = y_depart + (j - (i - 1) / 2) * espacement
+                x = x_depart - (i - 1) * espacement
+                if k < len(couleurs):
+                    bille = Bille(self.canevas,k, x, y, self.rayon_bille, couleurs[k])
+                    self.billes.append(bille)
+                    k += 1
+
+    def commencer(self):
+        self.canevas.bind("<Button-1>", self.placer_bille_blanche)
+        self.mettre_a_jour_infos_en_boucle()
+        self.racine.mainloop()
+
+    def placer_bille_blanche(self, event):
+        if self.bille_blanche:  # Empêcher le placement multiple
+            return
+        ligne_placement = self.marge + 3/4 * (self.largeur - 2 * self.marge)
+        if event.x > ligne_placement:
+            self.bille_blanche = Bille(self.canevas,-1, event.x, event.y, self.rayon_bille, "white")
+            self.billes.append(self.bille_blanche)
+            self.canne = Canne(self.canevas, self.bille_blanche)
+            self.configurer_controles()
+        else:
+            messagebox.showwarning("Mauvais placement", "Placez la bille à droite de la ligne blanche !")
+
+    def configurer_controles(self):
+        self.canevas.unbind("<Button-1>")
+        self.canne.dessiner()
+        self.canevas.focus_set()
+        self.racine.bind("<Left>", lambda _: self.canne.tourner_gauche())
+        self.racine.bind("<KeyRelease-Left>", lambda _: self.canne.raz())
+        self.racine.bind("<Right>", lambda _: self.canne.tourner_droite())
+        self.racine.bind("<KeyRelease-Right>", lambda _: self.canne.raz())
+        self.racine.bind("<Up>", lambda _: self.canne.ajuster_puissance(1))
+        self.racine.bind("<Down>", lambda _: self.canne.ajuster_puissance(-1))
+        self.racine.bind("<Return>", self.valider_angle)
+        self.racine.bind("<space>", self.tirer)
 
 
-# Création de la fenêtre
-root = tk.Tk()
-root.attributes('-fullscreen', True)
-w, h = root.winfo_screenwidth(), root.winfo_screenheight()
-print(w, h)
-canvas = tk.Canvas(root, bg='#1B4D3E', width=w, height=h)
-canvas.pack()
-canvas.focus_set() 
-root.bind("<KeyPress>", debug_keypress) 
+    def valider_angle(self, _):
+        self.racine.unbind("<Left>")
+        self.racine.unbind("<Right>")
+        self.racine.unbind("<Return>")
 
-# Bordures du billard
-canvas.create_rectangle(marge, marge, w - marge, h - marge, outline="gray", width=10)
+    def tirer(self, event):
+        self.racine.unbind("<Shift_R>")
+        self.racine.unbind("<Up>")
+        self.racine.unbind("<Down>")
+        self.racine.unbind("<space>")
+        self.valider_angle(event)
+        self.canevas.delete(self.canne.id)
+        self.canevas.delete(self.canne.proj_id)
+        angle_rad = math.radians(self.canne.angle)
+        energie_cinetique = 0.5 * self.canne.poids * self.canne.puissance ** 2
+        self.bille_blanche.vx = -energie_cinetique * math.sin(angle_rad) / 100
+        self.bille_blanche.vy =  energie_cinetique * math.cos(angle_rad) / 100
+        self.mettre_a_jour_physique()
 
-# Ligne blanche de placement
-ligne_placement = marge + 3/4 * (w - 2 * marge)
-canvas.create_line(ligne_placement, marge, ligne_placement, h - marge, fill="white", width=10)
-# Trous pour le billard (experimental)
-decal =10
-trous = [
-    (marge+decal, marge+decal),  # Trou en haut à gauche
-    (w - marge-decal, marge+decal),  # Trou en haut à droite
-    (marge+decal, h - marge - decal),  # Trou en bas à gauche
-    (w - marge - decal, h - marge - decal),  # Trou en bas à droite
-]
-import array as arr
+    def mettre_a_jour_physique(self):
+        en_mouvement = False
+        for bille in self.billes:
+            bille.vx *= 0.99
+            bille.vy *= 0.99
+            nouvelle_x = bille.x + bille.vx
+            nouvelle_y = bille.y + bille.vy
+            vx, vy = self.verifier_collision(bille, bille.vx, bille.vy)
+            bille.vx, bille.vy = vx, vy
+            if bille in self.billes:
+                bille.mettre_a_jour_position(nouvelle_x, nouvelle_y)
+                if abs(bille.vx) > 1 or abs(bille.vy) > 1:
+                    en_mouvement = True
+        self.verifier_collisions_billes()
 
-i=0
-global tombe
-tombe=[]
-tombe.append([])
-tombe.append([])
-tombe.append([])
-tombe.append([])
-for trou_x, trou_y in trous:
-    canvas.create_oval(
-        trou_x - rayon_bille*1.5, trou_y - rayon_bille*1.5, 
-        trou_x + rayon_bille*1.5, trou_y + rayon_bille*1.5, 
-        fill='black', outline='black'
-    )
-    if i==0 :
-        tombe[i]=trou_x + rayon_bille*1.5, trou_y + rayon_bille*1.5
-    if i== 2 :
-        tombe[i]=trou_x + rayon_bille*1.5, trou_y - rayon_bille*1.5
-    if i==1 :
-        tombe[i]=trou_x - rayon_bille*1.5, trou_y + rayon_bille*1.5
-    if i==3 :
-        tombe[i]=trou_x - rayon_bille*1.5, trou_y - rayon_bille*1.5
-    i=i+1
-
-liste_boules = []
-couleurs = ["red", "blue", "green", "yellow", "purple", "orange", "pink", "cyan", "white", "black", "gray", "brown", "lime", "magenta", "navy"]
-taille_boule = 15
-ecart = taille_boule * 2 + 2
-depart_x = 300
-depart_y = 100
-
-compteur_couleur = 0
-nblignes = 5
-
-for colonne in range(nblignes):
-    nbboules = colonne + 1
-    pos_x = depart_x - colonne * ecart  # Décalage vers la gauche pour chaque colonne
-    pos_y = depart_y 
-    for boule in range(nbboules):
-        y = pos_y + boule * ecart  # Empile verticalement dans la colonne
-        couleur = couleurs[compteur_couleur % len(couleurs)]
-        boule = drawcircle(canvas, pos_x, y, taille_boule, couleur)
-        x1, y1, x2, y2 = canvas.coords(boule)
-        centre_x = x1 + taille_boule
-        centre_y = y1 + taille_boule
-        liste_boules.append([f"boule{compteur_couleur+1}", centre_x, centre_y, pos_x, y, couleur, 0])
-        compteur_couleur += 1
-
-print(liste_boules)
+        
+        if en_mouvement:
+            self.racine.after(20, self.mettre_a_jour_physique)
+        else:
+            for bille in self.billes:
+                bille.vx = 0.0
+                bille.vy = 0.0
+            if self.bille_blanche and self.bille_blanche in self.billes:
+                self.canne = Canne(self.canevas, self.bille_blanche)
+                self.configurer_controles()
 
 
-root.after(100, start)
-root.mainloop()
+    def verifier_collision(self, bille, vx, vy):
+        x1 = bille.x - bille.rayon
+        y1 = bille.y - bille.rayon
+        x2 = bille.x + bille.rayon
+        y2 = bille.y + bille.rayon
+
+        if x1 <= self.marge:
+            vx = abs(vx)
+        elif x2 >= self.largeur - self.marge:
+            vx = -abs(vx)
+        if y1 <= self.marge:
+            vy = abs(vy)
+        elif y2 >= self.hauteur - self.marge:
+            vy = -abs(vy)
+
+        for tx, ty in self.trous:
+            distance = math.hypot(bille.x - tx, bille.y - ty)
+            if distance < self.rayon_bille * 1.5:
+                self.canevas.delete(bille.id)
+                self.canevas.delete(bille.text_id)
+
+                if bille == self.bille_blanche:
+                    messagebox.showinfo('Info', "La bille blanche est tombée ! Replacez-la.")
+                    self.billes.remove(bille)
+                    self.bille_blanche = None
+                    self.canevas.bind("<Button-1>", self.placer_bille_blanche)
+                    return vx, vy
+
+                elif bille.couleur == "black":
+                    # Vérifier si toutes les autres billes (sauf blanche) ont été rentrées
+                    billes_restantes = [b for b in self.billes if b != self.bille_blanche and b.couleur != "black"]
+                    
+                    if len(billes_restantes) == 0:
+                        messagebox.showinfo("Victoire", "Félicitations ! Vous avez gagné !")
+                        time.sleep(2)
+                        self.racine.destroy()
+                    else:
+                        messagebox.showinfo("Défaite", "Vous avez rentré la noire trop tôt ! Vous perdez.")
+                        time.sleep(2)
+                        self.racine.destroy()
+                    return vx, vy
+
+                else:
+                    # Bille colorée normale
+                    self.billes_tombees.append(bille)
+                    self.billes.remove(bille)
+                    self.points += 1
+                    
+                    # Mettre à jour l'affichage des billes tombées
+                    xdep = 500
+                    ydep = 30
+                    self.canevas.delete("billes_tombees")  # Supprimer l'ancien affichage
+                    for i, b in enumerate(self.billes_tombees):
+                        self.canevas.create_oval(
+                            xdep + i*30 - self.rayon_bille,
+                            ydep - self.rayon_bille,
+                            xdep + i*30 + self.rayon_bille,
+                            ydep + self.rayon_bille,
+                            fill=b.couleur,
+                            tags="billes_tombees"
+                        )
+        return vx, vy
+
+    def verifier_collisions_billes(self):
+        for i in range(len(self.billes)):
+            b1 = self.billes[i]
+            for j in range(i + 1, len(self.billes)):
+                b2 = self.billes[j]
+                dx = b2.x - b1.x
+                dy = b2.y - b1.y
+                distance = math.hypot(dx, dy)
+                distance_min = b1.rayon + b2.rayon
+                if distance < distance_min:
+                    nx = dx / distance
+                    ny = dy / distance
+                    dvx = b2.vx - b1.vx
+                    dvy = b2.vy - b1.vy
+                    produit_scalaire = dvx * nx + dvy * ny
+                    if produit_scalaire > 0:
+                        continue
+                    e = 1.0
+                    j = -(1 + e) * produit_scalaire / (2)
+                    b1.vx -= j * nx
+                    b1.vy -= j * ny
+                    b2.vx += j * nx
+                    b2.vy += j * ny
+
+    def mettre_a_jour_infos_en_boucle(self):
+        vitesse = 0.0
+        angle_deg = 0.0
+        if self.bille_blanche and self.bille_blanche in self.billes:
+            x, y = self.bille_blanche.x, self.bille_blanche.y
+            t = time.time()
+            if self.position_precedente and self.temps_precedent:
+                dx = x - self.position_precedente[0]
+                dy = y - self.position_precedente[1]
+                dt = t - self.temps_precedent
+                if dt > 0:
+                    vitesse = math.sqrt(dx**2 + dy**2) / dt
+                    angle_deg = (math.degrees(math.atan2(dy, dx))) % 360
+            self.position_precedente = (x, y)
+            self.temps_precedent = t
+        else:
+            self.position_precedente = None
+            self.temps_precedent = None
+        self.label_info.config(text=f'Vitesse : {vitesse:.2f} px/s | Angle : {angle_deg:.2f}° | Points : {self.points}')
+        self.racine.after(100, self.mettre_a_jour_infos_en_boucle)
+
+if __name__ == "__main__":
+    jeu = JeuDeBillard()
+    jeu.commencer()

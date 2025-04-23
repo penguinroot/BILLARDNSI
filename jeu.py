@@ -4,7 +4,7 @@ import sys
 import tkinter as tk
 from tkinter import messagebox
 import time
-# Removed unused tkinter import
+
 class Bille:
     def __init__(self, canevas, numero, x, y, rayon, couleur):
         self.canevas = canevas
@@ -14,7 +14,7 @@ class Bille:
         self.rayon = rayon
         self.couleur = couleur
         self.id = self.dessiner()
-        self.text_id = self.dessiner_nombre()  # ID pour le texte
+        self.text_id = self.dessiner_nombre()
         self.vx = 0.0
         self.vy = 0.0
 
@@ -42,7 +42,7 @@ class Bille:
         self.x = x
         self.y = y
         self.canevas.coords(self.id, x - self.rayon, y - self.rayon, x + self.rayon, y + self.rayon)
-        self.canevas.coords(self.text_id, x, y)  # Met à jour la position du texte
+        self.canevas.coords(self.text_id, x, y)
 
 class Canne:
     def __init__(self, canevas, bille):
@@ -53,10 +53,9 @@ class Canne:
         self.proj_id = None
         self.id = None
         self.poids = 0.5
-        self.wtour=0
+        self.wtour = 0
         self.label_info = tk.Label(self.canevas, text='', bg='lightblue', font=("Arial", 16))
         self.label_info.place(x=1000, y=10)
-
 
     def dessiner(self):
         if self.id:
@@ -64,11 +63,9 @@ class Canne:
         if self.proj_id:
             self.canevas.delete(self.proj_id)
 
-        # Calcul du vecteur directionnel en fonction de l'angle
         dx = math.sin(math.radians(self.angle))
         dy = math.cos(math.radians(self.angle))
 
-        # Longueur de la canne (ligne rouge)
         longueur = 50 + self.puissance
         x2 = self.bille.x + dx * longueur
         y2 = self.bille.y - dy * longueur
@@ -78,7 +75,6 @@ class Canne:
             fill="red", width=4
         )
 
-        # Longueur de la projection (ligne bleue)
         longueur_proj = max(self.canevas.winfo_width(), self.canevas.winfo_height())
         x_proj = self.bille.x - dx * longueur_proj
         y_proj = self.bille.y + dy * longueur_proj
@@ -90,20 +86,22 @@ class Canne:
         self.label_info.config(text=f'Puissance : {self.puissance}  | Angle : {self.angle}°')
 
     def tourner_gauche(self):
-        self.wtour =self.wtour+0.5
+        self.wtour += 0.5
         self.angle = (self.angle - self.wtour) % 360
         self.dessiner()
 
     def tourner_droite(self):
-        self.wtour=self.wtour+0.5
+        self.wtour += 0.5
         self.angle = (self.angle + self.wtour) % 360
         self.dessiner()
+
     def raz(self):
-        self.wtour=0
+        self.wtour = 0
 
     def ajuster_puissance(self, delta):
-        self.puissance = min(120,max(0, self.puissance + delta))
+        self.puissance = min(120, max(0, self.puissance + delta))
         self.dessiner()
+
 class JeuDeBillard:
     def __init__(self):
         self.racine = tk.Tk()
@@ -119,7 +117,6 @@ class JeuDeBillard:
         self.position_precedente = None
         self.temps_precedent = None
 
-        # Variables pour deux joueurs
         self.joueur_actuel = 1
         self.points_j1 = 0
         self.points_j2 = 0
@@ -249,9 +246,8 @@ class JeuDeBillard:
     def mettre_a_jour_physique(self):
         en_mouvement = False
         for bille in self.billes:
-            # Ajout d'une friction plus réaliste qui dépend de la vitesse
             friction = 0.98 - 0.02 * (math.hypot(bille.vx, bille.vy) / 100)
-            friction = max(0.9, min(0.99, friction))  # Bornes pour éviter des valeurs extrêmes
+            friction = max(0.9, min(0.99, friction))
             
             bille.vx *= friction
             bille.vy *= friction
@@ -264,7 +260,7 @@ class JeuDeBillard:
             
             if bille in self.billes:
                 bille.mettre_a_jour_position(nouvelle_x, nouvelle_y)
-                if abs(bille.vx) > 0.5 or abs(bille.vy) > 0.5:  # Seuil réduit pour plus de précision
+                if abs(bille.vx) > 0.5 or abs(bille.vy) > 0.5:
                     en_mouvement = True
 
         self.verifier_collisions_billes()
@@ -272,7 +268,6 @@ class JeuDeBillard:
         if en_mouvement:
             self.racine.after(20, self.mettre_a_jour_physique)
         else:
-            # Gestion du changement de tour
             if not self.faute and len(self.billes_tombees_tour) == 0:
                 self.joueur_actuel = 2 if self.joueur_actuel == 1 else 1
             
@@ -288,7 +283,7 @@ class JeuDeBillard:
                 self.configurer_controles()
 
     def verifier_collision(self, bille, vx, vy):
-        # Collisions avec les bords (inchangé)
+        # Collisions avec les bords
         x1 = bille.x - bille.rayon
         y1 = bille.y - bille.rayon
         x2 = bille.x + bille.rayon
@@ -303,34 +298,58 @@ class JeuDeBillard:
         elif y2 >= self.hauteur - self.marge:
             vy = -abs(vy)
 
-        # Nouvelle détection des trous
+        # Nouvelle détection des trous améliorée
         for tx, ty in self.trous:
-            distance = math.hypot(bille.x - tx, bille.y - ty)
-            rayon_trou = self.rayon_bille * 1.8  # Taille légèrement augmentée
+            dx = bille.x - tx
+            dy = bille.y - ty
+            distance = math.hypot(dx, dy)
+            rayon_effectif_trou = self.rayon_bille * 1.2
             
-            # 3 cas possibles :
-            if distance < rayon_trou - bille.rayon:  # Bille bien centrée
-                vitesse = math.hypot(bille.vx, bille.vy)
-                if vitesse > 1.5:  # Seuil de vitesse minimal
-                    self.gerer_bille_tombee(bille)
-                    return vx, vy
-
-            elif rayon_trou - bille.rayon < distance < rayon_trou + bille.rayon:  # Borde le trou
-                # Rebond partiel
-                nx = (bille.x - tx) / distance
-                ny = (bille.y - ty) / distance
-                bille.vx *= -0.4 * nx
-                bille.vy *= -0.4 * ny
+            vitesse = math.hypot(vx, vy)
+            if vitesse == 0:
+                continue
+                
+            dir_vx = vx / vitesse
+            dir_vy = vy / vitesse
+            
+            dir_trou_x = dx / distance if distance != 0 else 0
+            dir_trou_y = dy / distance if distance != 0 else 0
+            
+            alignement = (dir_vx * dir_trou_x) + (dir_vy * dir_trou_y)
+            
+            if (distance < rayon_effectif_trou and 
+                alignement > 0.85 and
+                vitesse > 2.5):
+                
+                # Animation de spirale avant suppression
+                for i in range(10):
+                    bille.x += (tx - bille.x) * 0.1
+                    bille.y += (ty - bille.y) * 0.1
+                    bille.mettre_a_jour_position(bille.x, bille.y)
+                    self.racine.update()
+                    time.sleep(0.03)
+                
+                self.gerer_bille_tombee(bille)
+                return vx, vy
+            
+            elif rayon_effectif_trou < distance < rayon_effectif_trou + bille.rayon:
+                angle = math.atan2(dy, dx)
+                point_col_x = tx + rayon_effectif_trou * math.cos(angle)
+                point_col_y = ty + rayon_effectif_trou * math.sin(angle)
+                
+                nx = (bille.x - point_col_x) / bille.rayon
+                ny = (bille.y - point_col_y) / bille.rayon
+                
+                restitution = 0.6
+                dot_product = vx * nx + vy * ny
+                vx -= (1 + restitution) * dot_product * nx
+                vy -= (1 + restitution) * dot_product * ny
+                
+                return vx * 0.8, vy * 0.8
 
         return vx, vy
+
     def gerer_bille_tombee(self, bille):
-        # Animation de chute (simplifiée)
-        for i in range(5, 0, -1):
-            self.canevas.itemconfig(bille.id, width=i)
-            self.canevas.itemconfig(bille.text_id, text="")
-            self.racine.update()
-            time.sleep(0.05)
-        
         self.canevas.delete(bille.id)
         self.canevas.delete(bille.text_id)
 
@@ -349,6 +368,7 @@ class JeuDeBillard:
             else:
                 self.points_j2 += 1
             self.billes.remove(bille)
+            self.billes_tombees.append(bille)
             self.afficher_billes_tombees()
             
     def afficher_billes_tombees(self):
@@ -356,7 +376,6 @@ class JeuDeBillard:
         self.canevas.delete("billes_tombees")
         
         for i, b in enumerate(self.billes_tombees):
-            # Affiche un cercle plein + numéro
             self.canevas.create_oval(
                 xdep + i*35 - self.rayon_bille,
                 ydep - self.rayon_bille,
@@ -371,15 +390,17 @@ class JeuDeBillard:
                 font=("Arial", 10, "bold"),
                 tags="billes_tombees"
             )
+
     def verifier_fin_de_partie(self):
         billes_restantes = [b for b in self.billes if b != self.bille_blanche and b.couleur != "black"]
         
-        if not billes_restantes:  # Toutes les billes sont tombées sauf la noire
+        if not billes_restantes:
             messagebox.showinfo("Victoire", f"Joueur {self.joueur_actuel} a gagné !")
         else:
-            messagebox.showinfo("Défaite", "La bille noire est tombée trop tôt !")
+            messagebox.showinfo("Défaute", "La bille noire est tombée trop tôt !")
         
         self.racine.after(2000, self.racine.destroy)
+
     def verifier_collisions_billes(self):
         for i in range(len(self.billes)):
             b1 = self.billes[i]
@@ -390,43 +411,37 @@ class JeuDeBillard:
                 distance = math.hypot(dx, dy)
                 distance_min = b1.rayon + b2.rayon
                 
-                # Vérifie la collision seulement si les billes se rapprochent
                 dvx = b2.vx - b1.vx
                 dvy = b2.vy - b1.vy
                 dot_product = dvx * dx + dvy * dy
-                if dot_product > 0:  # Les billes s'éloignent
+                if dot_product > 0:
                     continue
                     
                 if distance < distance_min:
-                    # Corrige la position pour éviter le chevauchement
                     overlap = distance_min - distance
                     nx = dx / distance
                     ny = dy / distance
                     
-                    # Déplace les billes pour qu'elles se touchent juste
                     b1.x -= overlap * nx * 0.5
                     b1.y -= overlap * ny * 0.5
                     b2.x += overlap * nx * 0.5
                     b2.y += overlap * ny * 0.5
                     
-                    # Calcul des vitesses après collision (plus réaliste)
-                    m1, m2 = 1, 1  # masses égales (simplification)
+                    m1, m2 = 1, 1
                     v1n = b1.vx * nx + b1.vy * ny
                     v2n = b2.vx * nx + b2.vy * ny
                     
-                    # Nouvelle vitesse tangentielle (conservée)
                     v1t = -b1.vx * ny + b1.vy * nx
                     v2t = -b2.vx * ny + b2.vy * nx
                     
-                    # Nouvelle vitesse normale (après collision élastique)
                     v1n_after = (v1n * (m1 - m2) + 2 * m2 * v2n) / (m1 + m2)
                     v2n_after = (v2n * (m2 - m1) + 2 * m1 * v1n) / (m1 + m2)
                     
-                    # Convertit les vitesses normales/tangentielles en vx/vy
                     b1.vx = v1n_after * nx - v1t * ny
                     b1.vy = v1n_after * ny + v1t * nx
                     b2.vx = v2n_after * nx - v2t * ny
                     b2.vy = v2n_after * ny + v2t * nx
+
     def mettre_a_jour_infos_en_boucle(self):
         texte_info = f'Joueur {self.joueur_actuel} | Points J1: {self.points_j1} | Points J2: {self.points_j2}'
         if hasattr(self, 'label_info'):
@@ -434,6 +449,5 @@ class JeuDeBillard:
         self.racine.after(100, self.mettre_a_jour_infos_en_boucle)
 
 if __name__ == "__main__":
-
     jeu = JeuDeBillard()
     jeu.commencer()

@@ -14,35 +14,62 @@ class Bille:
         self.rayon = rayon
         self.couleur = couleur
         self.id = self.dessiner()
-        self.text_id = self.dessiner_nombre()  # ID pour le texte
+        self.text_id = self.dessiner_nombre()
         self.vx = 0.0
         self.vy = 0.0
+        self.trail_ids = []
 
     def dessiner(self):
-        return self.canevas.create_oval(
-            self.x - self.rayon,
-            self.y - self.rayon,
-            self.x + self.rayon,
-            self.y + self.rayon,
-            width=0,
-            fill=self.couleur,
-            outline=self.couleur
+        # Billes avec effet 3D
+        self.id = self.canevas.create_oval(
+            self.x - self.rayon, self.y - self.rayon,
+            self.x + self.rayon, self.y + self.rayon,
+            fill=self.couleur, outline="black", width=1
         )
+        
+        # Reflet blanc
+        reflet_rayon = self.rayon // 2
+        self.canevas.create_oval(
+            self.x - reflet_rayon + 3, self.y - reflet_rayon + 3,
+            self.x - reflet_rayon//2, self.y - reflet_rayon//2,
+            fill="white", outline="", width=0
+        )
+        return self.id
 
     def dessiner_nombre(self):
-        return self.canevas.create_text(
-            self.x,
-            self.y,
+        # Numéro avec ombre portée
+        self.canevas.create_text(
+            self.x + 1, self.y + 1,
             text=str(self.numero),
-            fill="white",
-            font=("Arial", 12, "bold")
+            fill="black", font=("Arial", 12, "bold")
+        )
+        return self.canevas.create_text(
+            self.x, self.y,
+            text=str(self.numero),
+            fill="white", font=("Arial", 12, "bold")
         )
 
     def mettre_a_jour_position(self, x, y):
+        # Effacer l'ancienne position et la traînée si elle existe
+        for trail_id in self.trail_ids:
+            self.canevas.delete(trail_id)
+        self.trail_ids = []
+        
+        # Ajouter une traînée si la bille va vite
+        if abs(self.vx) > 2 or abs(self.vy) > 2:
+            trail = self.canevas.create_oval(
+                self.x - self.rayon//2, self.y - self.rayon//2,
+                self.x + self.rayon//2, self.y + self.rayon//2,
+                fill=self.couleur, outline="", width=0
+            )
+            self.trail_ids.append(trail)
+            self.canevas.tag_lower(trail)
+        
+        # Mettre à jour la position
         self.x = x
         self.y = y
         self.canevas.coords(self.id, x - self.rayon, y - self.rayon, x + self.rayon, y + self.rayon)
-        self.canevas.coords(self.text_id, x, y)  # Met à jour la position du texte
+        self.canevas.coords(self.text_id, x, y)
 
 class Canne:
     def __init__(self, canevas, bille):
@@ -52,58 +79,67 @@ class Canne:
         self.puissance = 100
         self.proj_id = None
         self.id = None
+        self.id_shadow = None
         self.poids = 0.5
-        self.wtour=0
-        self.label_info = tk.Label(self.canevas, text='', bg='lightblue', font=("Arial", 16))
-        self.label_info.place(x=1000, y=10)
-
+        self.wtour = 0
+        self.label_info = tk.Label(self.canevas, text='', bg='#2C3E50', fg='white', 
+                                 font=("Arial", 14, "bold"), bd=0, highlightthickness=0)
+        self.label_info.place(x=1000, y=10, anchor="ne")
 
     def dessiner(self):
         if self.id:
             self.canevas.delete(self.id)
+        if self.id_shadow:
+            self.canevas.delete(self.id_shadow)
         if self.proj_id:
             self.canevas.delete(self.proj_id)
 
-        # Calcul du vecteur directionnel en fonction de l'angle
         dx = math.sin(math.radians(self.angle))
         dy = math.cos(math.radians(self.angle))
-
-        # Longueur de la canne (ligne rouge)
         longueur = 50 + self.puissance
+        
+        # Ligne d'ombre (arrière)
         x2 = self.bille.x + dx * longueur
         y2 = self.bille.y - dy * longueur
+        self.id_shadow = self.canevas.create_line(
+            self.bille.x, self.bille.y, x2, y2,
+            fill="#8B0000", width=6
+        )
+        
+        # Ligne principale (avant)
         self.id = self.canevas.create_line(
-            self.bille.x, self.bille.y,
-            x2, y2,
+            self.bille.x, self.bille.y, x2, y2,
             fill="red", width=4
         )
-
-        # Longueur de la projection (ligne bleue)
+        
+        # Projection en pointillés
         longueur_proj = max(self.canevas.winfo_width(), self.canevas.winfo_height())
         x_proj = self.bille.x - dx * longueur_proj
         y_proj = self.bille.y + dy * longueur_proj
         self.proj_id = self.canevas.create_line(
-            self.bille.x, self.bille.y,
-            x_proj, y_proj,
+            self.bille.x, self.bille.y, x_proj, y_proj,
             fill="white", width=2, dash=(5, 2)
         )
-        self.label_info.config(text=f'Puissance : {self.puissance}  | Angle : {self.angle}°')
+        
+        self.label_info.config(text=f'Puissance: {self.puissance}  |  Angle: {self.angle}°')
 
     def tourner_gauche(self):
-        self.wtour =self.wtour+0.5
+        self.wtour += 0.5
         self.angle = (self.angle - self.wtour) % 360
         self.dessiner()
 
     def tourner_droite(self):
-        self.wtour=self.wtour+0.5
+        self.wtour += 0.5
         self.angle = (self.angle + self.wtour) % 360
         self.dessiner()
+
     def raz(self):
-        self.wtour=0
+        self.wtour = 0
 
     def ajuster_puissance(self, delta):
-        self.puissance = min(120,max(0, self.puissance + delta))
+        self.puissance = min(120, max(0, self.puissance + delta))
         self.dessiner()
+
 class JeuDeBillard:
     def __init__(self):
         self.racine = tk.Tk()
@@ -130,32 +166,45 @@ class JeuDeBillard:
         self.creer_canevas()
         self.creer_trous()
         self.creer_billes_depart()
-
-        self.label_info = tk.Label(self.racine, text='', bg='lightblue', font=("Arial", 16))
-        self.label_info.place(x=10, y=10)
+        self.creer_interface()
 
         self.canne = None
         self.bille_blanche = None
 
     def creer_canevas(self):
-        self.canevas = tk.Canvas(self.racine, bg='#1B4D3E', width=self.largeur, height=self.hauteur)
+        self.canevas = tk.Canvas(self.racine, width=self.largeur, height=self.hauteur)
         self.canevas.pack()
+        
+        # Fond avec dégradé
+        for i in range(0, self.hauteur, 5):
+            ratio = i / self.hauteur
+            r, g, b = 11, 77, 34  # Base #1B4D3E
+            r = int(r + (50 * ratio))
+            g = int(g + (30 * ratio))
+            b = int(b + (10 * ratio))
+            couleur = f'#{r:02x}{g:02x}{b:02x}'
+            self.canevas.create_rectangle(0, i, self.largeur, i+5, fill=couleur, outline=couleur)
+        
+        # Ombre de la table
         self.canevas.create_rectangle(
-            self.marge,
-            self.marge,
-            self.largeur - self.marge,
-            self.hauteur - self.marge,
-            outline="gray",
-            width=10
+            self.marge + 10, self.marge + 10,
+            self.largeur - self.marge + 10, self.hauteur - self.marge + 10,
+            fill="black", outline="", width=0
         )
+        
+        # Table principale
+        self.canevas.create_rectangle(
+            self.marge, self.marge,
+            self.largeur - self.marge, self.hauteur - self.marge,
+            outline="#654321", width=12, fill="#1B4D3E"
+        )
+        
+        # Ligne de placement
         ligne_placement = self.marge + 3/4 * (self.largeur - 2 * self.marge)
         self.canevas.create_line(
-            ligne_placement,
-            self.marge,
-            ligne_placement,
-            self.hauteur - self.marge,
-            fill="white",
-            width=10
+            ligne_placement, self.marge,
+            ligne_placement, self.hauteur - self.marge,
+            fill="white", width=10
         )
 
     def creer_trous(self):
@@ -166,19 +215,26 @@ class JeuDeBillard:
             (self.marge + decalage, self.hauteur - self.marge - decalage),
             (self.largeur - self.marge - decalage, self.hauteur - self.marge - decalage)
         ]
-        for i, (x, y) in enumerate(positions):
+        
+        for x, y in positions:
+            # Cercle extérieur métallique
             self.canevas.create_oval(
-                x - self.rayon_bille*1.5,
-                y - self.rayon_bille*1.5,
-                x + self.rayon_bille*1.5,
-                y + self.rayon_bille*1.5,
-                fill='black'
+                x - self.rayon_bille*2, y - self.rayon_bille*2,
+                x + self.rayon_bille*2, y + self.rayon_bille*2,
+                fill="#777777", outline="#EEEEEE", width=2
             )
-            if i == 0:
+            # Trou intérieur
+            self.canevas.create_oval(
+                x - self.rayon_bille*1.5, y - self.rayon_bille*1.5,
+                x + self.rayon_bille*1.5, y + self.rayon_bille*1.5,
+                fill="black", outline=""
+            )
+            
+            if positions.index((x, y)) == 0:
                 tx, ty = x + self.rayon_bille*1.5, y + self.rayon_bille*1.5
-            elif i == 1:
+            elif positions.index((x, y)) == 1:
                 tx, ty = x - self.rayon_bille*1.5, y + self.rayon_bille*1.5
-            elif i == 2:
+            elif positions.index((x, y)) == 2:
                 tx, ty = x + self.rayon_bille*1.5, y - self.rayon_bille*1.5
             else:
                 tx, ty = x - self.rayon_bille*1.5, y - self.rayon_bille*1.5
@@ -189,6 +245,7 @@ class JeuDeBillard:
         x_depart, y_depart = 500, 400
         espacement = self.rayon_bille * 2 + 2
         k = 0
+        
         for i in range(1, 6):
             for j in range(i):
                 y = y_depart + (j - (i - 1) / 2) * espacement
@@ -197,6 +254,36 @@ class JeuDeBillard:
                     bille = Bille(self.canevas, k, x, y, self.rayon_bille, couleurs[k])
                     self.billes.append(bille)
                     k += 1
+
+    def creer_interface(self):
+        # Cadre du score
+        self.canevas.create_rectangle(
+            10, 10, 300, 80,
+            fill="#2C3E50", outline="#34495E", width=3
+        )
+        
+        # Texte du score
+        self.label_score = tk.Label(
+            self.canevas, text='', bg='#2C3E50', fg='white',
+            font=("Arial", 16, "bold"), bd=0, highlightthickness=0
+        )
+        self.label_score.place(x=20, y=20)
+        
+        # Indicateurs de tour
+        self.indicateur_j1 = self.canevas.create_text(
+            20, 60, text="◉", fill="yellow",
+            font=("Arial", 20), anchor="w"
+        )
+        self.indicateur_j2 = self.canevas.create_text(
+            150, 60, text="◉", fill="white",
+            font=("Arial", 20), anchor="w"
+        )
+        
+        # Zone des billes tombées
+        self.canevas.create_text(
+            500, 15, text="Billes tombées:",
+            fill="white", font=("Arial", 12), anchor="w"
+        )
 
     def commencer(self):
         self.canevas.bind("<Button-1>", self.placer_bille_blanche)
@@ -212,7 +299,7 @@ class JeuDeBillard:
             self.configurer_controles()
             self.en_placement_apres_faute = False
         else:
-            messagebox.showwarning("Mauvais placement", "Placez la bille à droite de la ligne blanche !")
+            self.show_custom_message("Mauvais placement", "Placez la bille à droite de la ligne blanche !")
 
     def configurer_controles(self):
         self.canevas.unbind("<Button-1>")
@@ -264,7 +351,6 @@ class JeuDeBillard:
         if en_mouvement:
             self.racine.after(20, self.mettre_a_jour_physique)
         else:
-            # Gestion du changement de tour
             if not self.faute and len(self.billes_tombees_tour) == 0:
                 self.joueur_actuel = 2 if self.joueur_actuel == 1 else 1
             
@@ -306,7 +392,7 @@ class JeuDeBillard:
                     self.faute = True
                     self.joueur_actuel = 2 if self.joueur_actuel == 1 else 1
                     self.en_placement_apres_faute = True
-                    messagebox.showinfo('Info', f"Joueur {self.joueur_actuel}, placez la bille blanche")
+                    self.show_custom_message('Info', f"Joueur {self.joueur_actuel}, placez la bille blanche")
                     self.canevas.bind("<Button-1>", self.placer_bille_blanche)
                     return vx, vy
 
@@ -314,9 +400,9 @@ class JeuDeBillard:
                     billes_restantes = [b for b in self.billes if b != self.bille_blanche and b.couleur != "black"]
                     
                     if len(billes_restantes) == 0:
-                        messagebox.showinfo("Victoire", f"Joueur {self.joueur_actuel} gagne !")
+                        self.show_custom_message("Victoire", f"Joueur {self.joueur_actuel} gagne !")
                     else:
-                        messagebox.showinfo("Défaite", f"Joueur {self.joueur_actuel} perd !")
+                        self.show_custom_message("Défaite", f"Joueur {self.joueur_actuel} perd !")
                     time.sleep(2)
                     self.racine.destroy()
                     return vx, vy
@@ -370,10 +456,40 @@ class JeuDeBillard:
 
     def mettre_a_jour_infos_en_boucle(self):
         texte_info = f'Joueur {self.joueur_actuel} | Points J1: {self.points_j1} | Points J2: {self.points_j2}'
-        if hasattr(self, 'label_info'):
-            self.label_info.config(text=texte_info)
-        self.racine.after(100, self.mettre_a_jour_infos_en_boucle)
+        self.label_score.config(text=texte_info)
         
+        couleur_j1 = "yellow" if self.joueur_actuel == 1 else "white"
+        couleur_j2 = "yellow" if self.joueur_actuel == 2 else "white"
+        self.canevas.itemconfig(self.indicateur_j1, fill=couleur_j1)
+        self.canevas.itemconfig(self.indicateur_j2, fill=couleur_j2)
+        
+        self.racine.after(100, self.mettre_a_jour_infos_en_boucle)
+
+    def show_custom_message(self, title, message):
+        popup = tk.Toplevel(self.racine)
+        popup.title(title)
+        popup.geometry("300x150")
+        popup.resizable(False, False)
+        
+        # Fond gradient
+        canvas = tk.Canvas(popup, width=300, height=150)
+        canvas.pack()
+        for i in range(150):
+            couleur = f'#{50+i:02x}{50+i:02x}{255:02x}'
+            canvas.create_rectangle(0, i, 300, i+1, fill=couleur, outline="")
+        
+        canvas.create_text(
+            150, 50, text=message,
+            fill="white", font=("Arial", 14)
+        )
+        
+        btn = tk.Button(
+            popup, text="OK", command=popup.destroy,
+            bg="#34495E", fg="white", font=("Arial", 12),
+            relief="flat", bd=0
+        )
+        btn.place(x=120, y=100)
+         
 if __name__ == "__main__":
     jeu = JeuDeBillard()
     jeu.commencer()

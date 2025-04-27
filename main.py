@@ -1,4 +1,3 @@
-from email import message
 import math
 import sys
 import tkinter as tk
@@ -73,7 +72,7 @@ class Bille:
         self.canevas.coords(self.reflection_id, x1, y1, x2, y2)
 
 class Canne:
-    def __init__(self, canevas, bille):
+    def __init__(self, canevas, bille, joueur_actuel):
         self.canevas = canevas
         self.bille = bille
         self.angle = 90
@@ -83,6 +82,7 @@ class Canne:
         self.id_shadow = None
         self.poids = 0.5
         self.wtour = 0
+        self.couleur = "red" if joueur_actuel == 1 else "orange"
         self.label_info = tk.Label(self.canevas, text='Hello', bg='#2C3E50', fg='white', font=("Arial", 14, "bold"),
                                     relief="solid", bd=0, highlightthickness=3, highlightbackground="#34495E", highlightcolor="#34495E")
 
@@ -111,7 +111,7 @@ class Canne:
         # Ligne principale (avant)
         self.id = self.canevas.create_line(
             self.bille.x, self.bille.y, x2, y2,
-            fill="red", width=4
+            fill=self.couleur, width=4
         )
         
         # Projection en pointillés
@@ -303,11 +303,11 @@ class JeuDeBillard:
         if self.en_placement_apres_faute or event.x > ligne_placement:
             self.bille_blanche = Bille(self.canevas, -1, event.x, event.y, self.rayon_bille, "white")
             self.billes.append(self.bille_blanche)
-            self.canne = Canne(self.canevas, self.bille_blanche)
+            self.canne = Canne(self.canevas, self.bille_blanche, self.joueur_actuel)
             self.configurer_controles()
             self.en_placement_apres_faute = False
         else:
-            self.show_custom_message("Mauvais placement", "Placez la bille à droite de la ligne blanche !")
+            self.canne = Canne(self.canevas, self.bille_blanche, self.joueur_actuel)
 
     def configurer_controles(self):
         self.canevas.unbind("<Button-1>")
@@ -372,7 +372,7 @@ class JeuDeBillard:
                 bille.vy = 0.0
                 
             if self.bille_blanche and self.bille_blanche in self.billes:
-                self.canne = Canne(self.canevas, self.bille_blanche)
+                self.canne = Canne(self.canevas, self.bille_blanche, self.joueur_actuel)
                 self.configurer_controles()
 
     def verifier_collision(self, bille, vx, vy):

@@ -1,5 +1,7 @@
 import math
+import sys
 import tkinter as tk
+from tkinter import messagebox
 import time
 # Removed unused tkinter import
 class Bille:
@@ -139,88 +141,7 @@ class Canne:
     def ajuster_puissance(self, delta):
         self.puissance = min(120, max(0, self.puissance + delta))
         self.dessiner()
-import math
-import random
 
-class IA:
-    def __init__(self, jeu):
-        self.jeu = jeu  # Référence au jeu principal
-        self.difficulte = "normal"  # Peut être "facile", "normal" ou "difficile"
-
-    def choisir_bille_viser(self):
-        """Choisit la meilleure bille à viser selon une logique simple"""
-        if not self.jeu.bille_blanche or self.jeu.joueur_actuel != 2:
-            return None
-
-        # Filtrer les billes à ne pas viser (blanche, noire si pas fin de partie)
-        billes_valides = [
-            b for b in self.jeu.billes 
-            if b != self.jeu.bille_blanche and 
-            (b.couleur != "black" or len([b for b in self.jeu.billes if b.couleur not in ["white", "black"]]) == 0)
-        ]
-
-        if not billes_valides:
-            return None
-
-        # Stratégie différente selon la difficulté
-        if self.difficulte == "facile":
-            return random.choice(billes_valides)
-        elif self.difficulte == "normal":
-            # Choisit la bille la plus proche de la blanche
-            return min(billes_valides, key=lambda b: math.hypot(b.x-self.jeu.bille_blanche.x, b.y-self.jeu.bille_blanche.y))
-        else:  # difficile
-            # Priorise les billes proches des trous
-            billes_triees = sorted(billes_valides, 
-                                  key=lambda b: min(math.hypot(b.x-tx, b.y-ty) for tx, ty in self.jeu.trous))
-            return billes_triees[0]
-
-    def calculer_meilleur_tir(self):
-        """Calcule l'angle et la puissance pour le meilleur tir"""
-        bille_viser = self.choisir_bille_viser()
-        if not bille_viser:
-            return None, None
-
-        # Calcul angle de base
-        dx = bille_viser.x - self.jeu.bille_blanche.x
-        dy = bille_viser.y - self.jeu.bille_blanche.y
-        angle = math.degrees(math.atan2(dy, dx)) + 180  # +180 car on pousse depuis l'autre côté
-        
-        # Ajustement selon difficulté
-        if self.difficulte == "facile":
-            angle += random.uniform(-15, 15)  # Grand écart aléatoire
-        elif self.difficulte == "normal":
-            angle += random.uniform(-5, 5)    # Petit écart aléatoire
-        # Pas d'ajustement pour "difficile"
-
-        # Calcul puissance
-        distance = math.hypot(dx, dy)
-        if self.difficulte == "facile":
-            puissance = random.randint(60, 110)
-        elif self.difficulte == "normal":
-            puissance = min(110, max(70, 80 + distance * 0.4))
-        else:  # difficile
-            puissance = min(105, max(75, 85 + distance * 0.3))
-
-        return angle % 360, puissance
-
-    def jouer_tour(self):
-        """Exécute le tour de l'IA"""
-        if not self.jeu.bille_blanche or self.jeu.joueur_actuel != 2:
-            return
-
-        angle, puissance = self.calculer_meilleur_tir()
-        if angle is None:  # Si aucune bille valide (cas rare)
-            angle = random.uniform(0, 360)
-            puissance = random.randint(70, 100)
-        print(f"IA joue : angle={angle}, puissance={puissance}")
-
-        # Applique les paramètres et tire
-        self.jeu.canne.angle = angle
-        self.jeu.canne.puissance = puissance
-        self.jeu.canne.dessiner()
-        
-        # Petit délai pour un effet plus naturel
-        self.jeu.racine.after(1000, self.jeu.tirer)
 class JeuDeBillard:
     def __init__(self):
         self.racine = tk.Tk()
@@ -235,9 +156,7 @@ class JeuDeBillard:
         self.billes_tombees = []
         self.position_precedente = None
         self.temps_precedent = None
-        self.ia = IA(self)  # Ajoute cette ligne
-        self.ia.difficulte = "difficile"  # "facile", "normal" ou "difficile"
-        self.ia_active = True
+
         # Variables pour deux joueurs
         self.joueur_actuel = 1
         self.points_j1 = 0
@@ -410,7 +329,7 @@ class JeuDeBillard:
 
     def tirer(self, event):
         self.racine.unbind("<Shift_R>")
-    def tirer(self, event=None):
+        self.racine.unbind("<Up>")
         self.racine.unbind("<Down>")
         self.racine.unbind("<space>")
         self.valider_angle(event)
@@ -455,10 +374,6 @@ class JeuDeBillard:
             if self.bille_blanche and self.bille_blanche in self.billes:
                 self.canne = Canne(self.canevas, self.bille_blanche, self.joueur_actuel)
                 self.configurer_controles()
-                
-                # Ajout pour l'IA - déclenche le tour de l'IA si c'est son tour
-                if self.joueur_actuel == 2 and self.ia_active:
-                    self.racine.after(1000, self.ia.jouer_tour)  # Délai de 1s avant que l'IA joue
 
     def verifier_collision(self, bille, vx, vy):
         x1 = bille.x - bille.rayon

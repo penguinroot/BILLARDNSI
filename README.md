@@ -73,13 +73,6 @@ Utilisez la souris pour viser et choisir la puissance, puis cliquez pour tirer.
   * 🎮 Nouvelle Partie
   * ❌ Quitter
 
----
-
-## 📸 Aperçu
-
-*(Ajoute ici des captures d’écran de ton jeu)*
-
----
 
 ## ⚠️ Limites connues
 
@@ -98,8 +91,28 @@ Utilisez la souris pour viser et choisir la puissance, puis cliquez pour tirer.
 * Séparer le code en plusieurs fichiers pour plus de clarté
 
 ---
+## Contribuer
 
+Les contributions sont les bienvenues ! Pour contribuer :
+
+1. Forkez le dépôt.
+2. Créez une branche pour votre fonctionnalité ou correction de bug :
+   ```bash
+   git checkout -b feature/ma-fonctionnalite
+   ```
+3. Commitez vos modifications :
+   ```bash
+   git commit -m "Ajout de ma fonctionnalité"
+   ```
+4. Poussez vers votre fork :
+   ```bash
+   git push origin feature/ma-fonctionnalite
+   ```
+5. Créez une pull request sur le dépôt principal.
+---
 ## 👨‍💻 Auteur
 
 Projet développé par **penguinroot** dans le cadre de la spécialité NSI.
+
+
 

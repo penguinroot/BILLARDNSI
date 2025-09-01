@@ -1,38 +1,105 @@
-# BILLARDNSI
+# 🎱 BILLARDNSI
 
-**BILLARDNSI** est un projet Python simulant un jeu de billard graphique.
+Un projet de billard codé en **Python** avec **Tkinter** pour l’interface graphique.  
+Le jeu propose une simulation simple mais complète : gestion des billes, des collisions, de la canne, du score et des conditions de victoire.
 
-## Fonctionnalités principales
+---
 
-- Simulation d’un jeu de billard avec interface graphique (Tkinter).
-- Gestion des billes, des trous, du score, et du tour des joueurs.
-- Contrôle de la puissance et de l’angle du tir.
-- Affichage plein écran et effets visuels sur la table.
+## 🚀 Fonctionnalités
 
-## Installation
+- 🎮 **Gameplay complet** :
+  - Placement de la bille blanche
+  - Gestion de la puissance et de l’angle du tir
+  - Détection des collisions (bille/mur, bille/bille, trous)
+  - Gestion des fautes (bille blanche rentrée)
+  - Victoire/défaite avec la bille noire
 
-1. Clonez le dépôt :  
-   ```bash
-   git clone https://github.com/penguinroot/BILLARDNSI
-   cd BILLARDNSI
-   ```
-2. Assurez-vous d’avoir Python installé (version 3 recommandée).
+- 🎨 **Interface graphique soignée** :
+  - Fond en dégradé
+  - Ombres sur les billes
+  - Traces de trajectoires
+  - Ligne de projection pour viser
+  - Popups personnalisés
 
-## Utilisation
+- 👥 **Deux joueurs** :
+  - Gestion des scores
+  - Alternance des tours
 
-Lancez le jeu avec :
+---
+
+## 📦 Installation
+
+### 1. Cloner le dépôt
+```bash
+git clone https://github.com/penguinroot/BILLARDNSI.git
+cd BILLARDNSI
+````
+
+### 2. Créer un environnement virtuel (optionnel mais recommandé)
+
+```bash
+python -m venv venv
+source venv/bin/activate   # Linux/Mac
+venv\Scripts\activate      # Windows
+```
+
+### 3. Installer les dépendances
+
+Le projet repose principalement sur **Tkinter** (déjà inclus avec Python) et **Pillow** :
+
+```bash
+pip install pillow
+```
+
+---
+
+## ▶️ Lancement du jeu
+
 ```bash
 python main.py
 ```
 
-## Contribuer
-
-Les contributions sont les bienvenues ! Ouvrez une issue ou un pull request.
-
-## Licence
-
-Ce projet est sous licence MIT.
+Le jeu démarre en **plein écran**.
+Utilisez la souris pour viser et choisir la puissance, puis cliquez pour tirer.
 
 ---
 
-Pour explorer le code ou voir les fichiers principaux, consultez le dépôt sur GitHub : [BILLARDNSI](https://github.com/penguinroot/BILLARDNSI)
+## 🕹️ Commandes
+
+* **Souris** : viser et tirer
+* **Échap (Esc)** : quitter le plein écran
+* **Boutons en bas de l’écran** :
+
+  * 🎮 Nouvelle Partie
+  * ❌ Quitter
+
+---
+
+## 📸 Aperçu
+
+*(Ajoute ici des captures d’écran de ton jeu)*
+
+---
+
+## ⚠️ Limites connues
+
+* Collision bille/bille simplifiée (pas de vraie conservation de l’énergie)
+* Seulement 6 billes colorées + bille blanche (au lieu de 15 dans un vrai billard)
+* Quelques incohérences graphiques (`reflection_id` à corriger)
+
+---
+
+## 🛠️ Améliorations possibles
+
+* Ajouter un **mode 8-ball/9-ball**
+* Améliorer la **physique des collisions**
+* Ajouter des **sons et textures réalistes**
+* Mode **multijoueur en ligne** via sockets
+* Séparer le code en plusieurs fichiers pour plus de clarté
+
+---
+
+## 👨‍💻 Auteur
+
+Projet développé par **penguinroot** dans le cadre de la spécialité NSI.
+
